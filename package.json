@@ -1,0 +1,27 @@
+{
+  "name": "test-koa-actuator",
+  "version": "0.1.0",
+  "description": "Healthcheck and monitoring middleware for koa inspired by java spring's actuators",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tcdl/koa-actuator.git"
+  },
+  "engines": {
+    "node": ">=7.9.0"
+  },
+  "dependencies": {
+    "app-root-path": "^2.0.1",
+    "koa-compose": "^4.0.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "koa": "^2.2.0",
+    "mocha": "^3.3.0",
+    "supertest": "^3.0.0"
+  }
+}
