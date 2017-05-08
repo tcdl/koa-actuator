@@ -42,7 +42,7 @@ async function info(ctx, next) {
  */
 async function env(ctx, next) {
   if (ENV_PATH == ctx.path) {
-    const envCopy = JSON.parse(JSON.stringify(process.env)); //deep copy
+    const envCopy = Object.assign({}, process.env); //deep copy
     Object
       .keys(envCopy)
       .filter(property => {
