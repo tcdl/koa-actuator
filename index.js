@@ -13,6 +13,7 @@ const SECURE_PROP_NAMES = ['admin', 'user', 'password', 'pass', 'pwd', 'login', 
 /**
  * Writes {status: 'UP'} to response body if request path is /health
  */
+//TODO: add a callback function
 async function health(ctx, next) {
   if (HEALTH_PATH == ctx.path)
     ctx.body = {status: 'UP'};
@@ -53,7 +54,7 @@ async function env(ctx, next) {
         }
         return false;
       })
-      .forEach(property => {envCopy[property] = '*******'}); //hide secure details
+      .forEach(property => envCopy[property] = '*******'); //hide secure details
     ctx.body = {systemEnvironment: envCopy, arguments: process.argv};
   } else {
     await next();
