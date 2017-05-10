@@ -43,12 +43,12 @@ async function info(ctx, next) {
  */
 async function env(ctx, next) {
   if (ENV_PATH == ctx.path) {
-    const envCopy = Object.assign({}, process.env); //deep copy
+    const envCopy = Object.assign({}, process.env);
     Object
       .keys(envCopy)
       .filter(property => {
         const propLowerCase = property.toLowerCase();
-        return SECURE_PROP_NAMES.some(secPropName => propLowerCase.includes(secPropName));
+        return SECURE_PROP_NAMES.some(p => propLowerCase.includes(p));
       })
       .forEach(property => envCopy[property] = '*******'); //hide secure details
     ctx.body = {systemEnvironment: envCopy, arguments: process.argv};
