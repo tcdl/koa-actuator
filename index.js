@@ -48,11 +48,7 @@ async function env(ctx, next) {
       .keys(envCopy)
       .filter(property => {
         const propLowerCase = property.toLowerCase();
-        for(let i in SECURE_PROP_NAMES) {
-          if (propLowerCase.includes(SECURE_PROP_NAMES[i]))
-            return true;
-        }
-        return false;
+        return SECURE_PROP_NAMES.some(secPropName => propLowerCase.includes(secPropName));
       })
       .forEach(property => envCopy[property] = '*******'); //hide secure details
     ctx.body = {systemEnvironment: envCopy, arguments: process.argv};
