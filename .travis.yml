@@ -8,5 +8,5 @@ deploy:
     secure: "fb+NfWLME/7WqcFUl71AHt0/f0z6frl40oJfUylXu37Ei+kfTN/uBuAndg2bNdEBoCDfgL21akQAum/nsKzMos60uaOTPg2gPpqvPdyeX3RA0NWf9I8tsNEV8/DJQBZEgVhNQfHdlWnALLBKfJvsHffnV5NOphP/o+RxfzVQQ5M="
   on:
     tags: true
-    repo: tcdl/msb
+    repo: tcdl/koa-actuator
     node: '7'
