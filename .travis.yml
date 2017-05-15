@@ -5,7 +5,7 @@ deploy:
   provider: npm
   email: integration-dev@thomascookonline.com
   api_key:
-    secure: "fb+NfWLME/7WqcFUl71AHt0/f0z6frl40oJfUylXu37Ei+kfTN/uBuAndg2bNdEBoCDfgL21akQAum/nsKzMos60uaOTPg2gPpqvPdyeX3RA0NWf9I8tsNEV8/DJQBZEgVhNQfHdlWnALLBKfJvsHffnV5NOphP/o+RxfzVQQ5M="
+    secure: TSq21sGMlBWny6joyHjM0ZA+xBmTcFwkfwU9kFgpHNtQtNCcpGm3cfQNQraMokUS+lvfOMqrDv2wTlndL0yxac2R5VUoPFMVTVCLTx+DTfXVt4F1yO2qYKX1YUm0+ceJ6ORDVH3nmU+vbWC0MzoqHQ7sETSCfPWZ8Ab2EotbZvbkXT1CN0wRBgjgsY8v1tP2qY+5D0b9Sz4E1R5dKNjBw6GnxySoZp8o+bazrQfXSRDnip+zIef0kN/uN61TalI1orDgmfZY6RaSfmjMHXC/fX3CTHhgN0tAjvIEAmGz52HrrS8mFAB3HygNRJD7+BWDRJoZxRRafHI+gMtcx+th+g7VtR2XLuYn4YVe0vkrrwXo0uj50aCStYg2VrNFl7Ob5G6nfWACJPuzc2pU9HBB9GE7VrM5GeiKturby6rR3xUiZvrHK/nXhXll1m1Re8NnVoaPRoQeEuZsDfytF6c5gWBz/kEfEgZ1i4FVUg9cm5pk8bMu6FbuvupqdE+3DEqW0nb/tkquLI7zE7SkKw3dhDfnbWss4c/Px9QHqIRGGrGlc+xvA0TYAHNFVaLbVAC7W4MnfGNSqd6uf4PYmVAn6lv2BSuNAyxhIHT89JkqCUHIz5KEgZ5RG50/bjv/BC21wgmSQ4EqwrIIGCXMF3IOAV1rEHX7SVAX5KpMwbMGbbc=
   on:
     tags: true
     repo: tcdl/koa-actuator
