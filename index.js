@@ -2,7 +2,7 @@ const compose = require('koa-compose');
 const os = require('os');
 const path = require('path');
 const appRootPath = require('app-root-path');
-const package_json = require(appRootPath + path.sep +'package.json');
+const package_json = require(appRootPath + path.sep + 'package.json');
 
 const HEALTH_PATH = '/health';
 const ENV_PATH = '/env';
@@ -68,7 +68,7 @@ async function metrics(ctx, next) {
       uptime: process.uptime(),
       processors: os.cpus().length,
       heap: memory.heapTotal,
-      "heap.used": memory.heapUsed,
+      'heap.used': memory.heapUsed,
       resources: {
         memory: memory,
         loadavg: os.loadavg(),
@@ -82,4 +82,6 @@ async function metrics(ctx, next) {
 }
 
 
-module.exports = compose([health, env, info, metrics]);
+module.exports = (options) => {
+  return compose([health, env, info, metrics]);
+};

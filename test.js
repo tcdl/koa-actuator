@@ -9,7 +9,7 @@ describe('Koa actuator', () => {
   let request;
 
   before(() => {
-    app.use(actuator);
+    app.use(actuator());
     request = supertest.agent(app.listen());
   });
 
