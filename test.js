@@ -1,21 +1,19 @@
 const actuator = require('.');
 const Koa = require('koa');
-const supertest = require('supertest');
+const request = require('supertest');
 const assert = require('chai').assert;
-const app = new Koa();
 
 describe('Koa actuator', () => {
 
-  let request;
-
   before(() => {
-    app.use(actuator());
-    request = supertest.agent(app.listen());
   });
 
   describe('/health', () => {
     it('GET should return 200 and status UP', (done) => {
-      request
+      const app = new Koa();
+      app.use(actuator());
+
+      request(app.callback())
         .get('/health')
         .expect(200)
         .expect(/UP/, done);
@@ -23,12 +21,11 @@ describe('Koa actuator', () => {
 
     describe('/health with custom checks', () => {
 
-      let oldMiddleware;
       const dbStatus = {status: 'UP', freeConnections: 10};
       const redisStatus = {status: 'UP', usedMemory: '52m', uptimeDays: 16};
+      const app = new Koa();
 
       before(() => {
-        oldMiddleware = app.middleware.pop();
         app.use(actuator({
           checks: [
             {name: 'db', check: () => dbStatus},
@@ -37,13 +34,8 @@ describe('Koa actuator', () => {
         }));
       });
 
-      after(() => {
-        app.middleware.pop();
-        app.middleware.push(oldMiddleware);
-      });
-
       it('GET should return 200, custom checks and aggregated status UP', (done) => {
-        request
+        request(app.callback())
           .get('/health')
           .expect(200)
           .expect({
@@ -58,7 +50,7 @@ describe('Koa actuator', () => {
         redisStatus.status = 'DOWN';
 
         //act & assert
-        request
+        request(app.callback())
           .get('/health')
           .expect(503)
           .expect({
@@ -72,7 +64,12 @@ describe('Koa actuator', () => {
 
   describe('/info', () => {
     it('GET should return 200 and version', (done) => {
-      request
+      //arrange
+      const app = new Koa();
+      app.use(actuator());
+
+      //act & assert
+      request(app.callback())
         .get('/info')
         .expect(200)
         .end((err, res) => {
@@ -87,9 +84,11 @@ describe('Koa actuator', () => {
     it('GET should return 200 and the list of environment variables', (done) => {
       //arrange
       process.env.TEST_VAR = 'test';
+      const app = new Koa();
+      app.use(actuator());
 
       //act & assert
-      request
+      request(app.callback())
         .get('/env')
         .expect(200)
         .end((err, res) => {
@@ -104,9 +103,11 @@ describe('Koa actuator', () => {
       process.env.TEST_VAR = 'test';
       process.env.USERNAME = 'test-username';
       process.env.PASSWORD = 'test-password';
+      const app = new Koa();
+      app.use(actuator());
 
       //act & assert
-      request
+      request(app.callback())
         .get('/env')
         .expect(200)
         .end((err, res) => {
@@ -121,8 +122,12 @@ describe('Koa actuator', () => {
 
   describe('/metrics', () => {
     it('should return 200 and show some service info (like uptime, heap usage etc)', (done) => {
+      //arrange
+      const app = new Koa();
+      app.use(actuator());
+
       //act & assert
-      request
+      request(app.callback())
         .get('/metrics')
         .expect(200)
         .end((err, res) => {
