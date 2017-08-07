@@ -13,20 +13,21 @@ const SECURE_PROP_NAMES = ['admin', 'user', 'password', 'pass', 'pwd', 'login', 
 /**
  * Writes {status: 'UP'} to response body if request path is /health
  */
-function health(options) {
+function health(options = {}) {
   let checks = [];
-  if (options && options.checks.constructor === Array) {
+  if (options.checks && options.checks.constructor === Array) {
     checks = options.checks.filter((check) => check && check.name && typeof(check.check) === 'function');
   }
+  const timeout = options.timeout || 5000;
   return async function (ctx, next) {
     if (HEALTH_PATH === ctx.path) {
       const health = {status: 'UP'};
       for (let check of checks) {
         let checkResult;
         try {
-          checkResult = await check.check();
+          checkResult = await Promise.race([check.check(), new Promise((resolve, reject) => setTimeout(() => reject(new Error('Check timed out')), timeout))]);
         } catch (e) {
-          checkResult = {status: 'DOWN', error: e.message || e.toString()};
+          checkResult = {status: 'DOWN', error: e && (e.message || e.toString())};
         }
         if (typeof(checkResult) !== 'undefined' && checkResult !== null) {
           health[check.name] = checkResult;
@@ -103,6 +104,6 @@ async function metrics(ctx, next) {
 }
 
 
-module.exports = (options) => {
-  return compose([health(options && options.health), env, info, metrics]);
+module.exports = (options = {}) => {
+  return compose([health(options.health), env, info, metrics]);
 };

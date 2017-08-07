@@ -110,6 +110,28 @@ describe('koa-actuator', () => {
         }, done);
     });
 
+    it('should return 503 and status DOWN if an async check times out', (done) => {
+      //arrange
+      const app = new Koa();
+      app.use(actuator({
+        health: {
+          checks: [
+            {name: 'db', check: () => new Promise((resolve, reject) => setTimeout(() => resolve({status: 'UP', freeConnections: 10}), 3000))}
+          ],
+          timeout: 100
+        }
+      }));
+
+      //act & assert
+      request(app.callback())
+        .get('/health')
+        .expect(503)
+        .expect({
+          status: 'DOWN',
+          db: {status: 'DOWN', error: 'Check timed out'},
+        }, done);
+    });
+
     it('should return 200 and status UP if defined checks are not valid', (done) => {
       //arrange
       const app = new Koa();
