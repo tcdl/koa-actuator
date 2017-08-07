@@ -3,67 +3,70 @@ const Koa = require('koa');
 const request = require('supertest');
 const assert = require('chai').assert;
 
-describe('Koa actuator', () => {
-
-  before(() => {
-  });
+describe('koa-actuator', () => {
 
   describe('/health', () => {
-    it('GET should return 200 and status UP', (done) => {
+    it('should return 200 and status UP if no custom checks defined', (done) => {
+      //arrange
       const app = new Koa();
       app.use(actuator());
 
+      //act & assert
       request(app.callback())
         .get('/health')
         .expect(200)
-        .expect(/UP/, done);
+        .expect({status: 'UP'}, done);
     });
 
-    describe('/health with custom checks', () => {
-
-      const dbStatus = {status: 'UP', freeConnections: 10};
-      const redisStatus = {status: 'UP', usedMemory: '52m', uptimeDays: 16};
+    it('should return 200 and status UP if all custom check pass', (done) => {
+      //arrange
       const app = new Koa();
-
-      before(() => {
-        app.use(actuator({
+      app.use(actuator({
+        health: {
           checks: [
-            {name: 'db', check: () => dbStatus},
-            {name: 'redisStatus', check: () => redisStatus}
+            {name: 'db', check: async () => Promise.resolve({status: 'UP', freeConnections: 10})},
+            {name: 'redis', check: () => ({status: 'UP', usedMemory: '52m', uptimeDays: 16})}
           ]
-        }));
-      });
+        }
+      }));
 
-      it('GET should return 200, custom checks and aggregated status UP', (done) => {
-        request(app.callback())
-          .get('/health')
-          .expect(200)
-          .expect({
-            status: 'UP',
-            db: dbStatus,
-            redisStatus: redisStatus
-          }, done);
-      });
+      //act & assert
+      request(app.callback())
+        .get('/health')
+        .expect(200)
+        .expect({
+          status: 'UP',
+          db: {status: 'UP', freeConnections: 10},
+          redis: {status: 'UP', usedMemory: '52m', uptimeDays: 16}
+        }, done);
+    });
 
-      it('GET should return 503, custom checks and aggregated status DOWN', (done) => {
-        //arrange
-        redisStatus.status = 'DOWN';
+    it('should return 503 and status DOWN if any custom check fails', (done) => {
+      //arrange
+      const app = new Koa();
+      app.use(actuator({
+        health: {
+          checks: [
+            {name: 'db', check: async () => Promise.resolve({status: 'UP', freeConnections: 10})},
+            {name: 'redis', check: async () => Promise.resolve({status: 'DOWN', usedMemory: '52m', uptimeDays: 16})}
+          ]
+        }
+      }));
 
-        //act & assert
-        request(app.callback())
-          .get('/health')
-          .expect(503)
-          .expect({
-            status: 'DOWN',
-            db: dbStatus,
-            redisStatus: redisStatus
-          }, done);
-      });
+      //act & assert
+      request(app.callback())
+        .get('/health')
+        .expect(503)
+        .expect({
+          status: 'DOWN',
+          db: {status: 'UP', freeConnections: 10},
+          redis: {status: 'DOWN', usedMemory: '52m', uptimeDays: 16}
+        }, done);
     });
   });
 
   describe('/info', () => {
-    it('GET should return 200 and version', (done) => {
+    it('should return 200 and version', (done) => {
       //arrange
       const app = new Koa();
       app.use(actuator());
@@ -81,7 +84,7 @@ describe('Koa actuator', () => {
   });
 
   describe('/env', () => {
-    it('GET should return 200 and the list of environment variables', (done) => {
+    it('should return 200 and the list of environment variables', (done) => {
       //arrange
       process.env.TEST_VAR = 'test';
       const app = new Koa();

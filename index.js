@@ -13,25 +13,22 @@ const SECURE_PROP_NAMES = ['admin', 'user', 'password', 'pass', 'pwd', 'login', 
 /**
  * Writes {status: 'UP'} to response body if request path is /health
  */
-function health(checks) {
+function health(options) {
+  let checks = [];
+  if (options && options.checks.constructor === Array) {
+    checks = options.checks.filter((check) => check && check.name && typeof(check.check) === 'function');
+  }
   return async function (ctx, next) {
     if (HEALTH_PATH === ctx.path) {
-      const health = {};
-      let up = true;
+      const health = {status: 'UP'};
       for (let check of checks) {
         const checkResult = await check.check();
         health[check.name] = checkResult;
         if (checkResult.status === 'DOWN') {
-          up = false;
+          health.status = checkResult.status;
         }
       }
-      if (up) {
-        health.status = 'UP';
-        ctx.status = 200;
-      } else {
-        health.status = 'DOWN';
-        ctx.status = 503;
-      }
+      ctx.status = health.status === 'UP' ? 200 : 503;
       ctx.body = health;
     } else
       await next();
@@ -100,9 +97,5 @@ async function metrics(ctx, next) {
 
 
 module.exports = (options) => {
-  let checks = [];
-  if (options && options.checks.constructor === Array) {
-    checks = options.checks.filter((check) => check && check.name && typeof(check.check) === 'function');
-  }
-  return compose([health(checks), env, info, metrics]);
+  return compose([health(options && options.health), env, info, metrics]);
 };
