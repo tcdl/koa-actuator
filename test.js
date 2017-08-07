@@ -18,13 +18,13 @@ describe('koa-actuator', () => {
         .expect({status: 'UP'}, done);
     });
 
-    it('should return 200 and status UP if all checks pass', (done) => {
+    it('should return 200 and status UP if sync and async checks pass', (done) => {
       //arrange
       const app = new Koa();
       app.use(actuator({
         health: {
           checks: [
-            {name: 'db', check: async () => Promise.resolve({status: 'UP', freeConnections: 10})},
+            {name: 'db', check: () => Promise.resolve({status: 'UP', freeConnections: 10})},
             {name: 'redis', check: () => ({status: 'UP', usedMemory: '52m', uptimeDays: 16})}
           ]
         }
@@ -47,8 +47,8 @@ describe('koa-actuator', () => {
       app.use(actuator({
         health: {
           checks: [
-            {name: 'db', check: async () => Promise.resolve({status: 'UP', freeConnections: 10})},
-            {name: 'redis', check: async () => Promise.resolve({status: 'DOWN', usedMemory: '52m', uptimeDays: 16})}
+            {name: 'db', check: () => Promise.resolve({status: 'UP', freeConnections: 10})},
+            {name: 'redis', check: () => Promise.resolve({status: 'DOWN', usedMemory: '52m', uptimeDays: 16})}
           ]
         }
       }));
@@ -61,6 +61,52 @@ describe('koa-actuator', () => {
           status: 'DOWN',
           db: {status: 'UP', freeConnections: 10},
           redis: {status: 'DOWN', usedMemory: '52m', uptimeDays: 16}
+        }, done);
+    });
+
+    it('should return 503 and status DOWN if a sync check throws exception', (done) => {
+      //arrange
+      const app = new Koa();
+      app.use(actuator({
+        health: {
+          checks: [
+            {name: 'db', check: () => { throw new Error('unexpected error'); }},
+            {name: 'redis', check: () => Promise.resolve({status: 'UP', usedMemory: '52m', uptimeDays: 16})}
+          ]
+        }
+      }));
+
+      //act & assert
+      request(app.callback())
+        .get('/health')
+        .expect(503)
+        .expect({
+          status: 'DOWN',
+          db: {status: 'DOWN', error: 'unexpected error'},
+          redis: {status: 'UP', usedMemory: '52m', uptimeDays: 16}
+        }, done);
+    });
+
+    it('should return 503 and status DOWN if an async check rejects promise', (done) => {
+      //arrange
+      const app = new Koa();
+      app.use(actuator({
+        health: {
+          checks: [
+            {name: 'db', check: () => Promise.resolve({status: 'UP', freeConnections: 10})},
+            {name: 'redis', check: () => Promise.reject('unexpected async error')},
+          ]
+        }
+      }));
+
+      //act & assert
+      request(app.callback())
+        .get('/health')
+        .expect(503)
+        .expect({
+          status: 'DOWN',
+          db: {status: 'UP', freeConnections: 10},
+          redis: {status: 'DOWN', error: 'unexpected async error'}
         }, done);
     });
 

@@ -22,7 +22,12 @@ function health(options) {
     if (HEALTH_PATH === ctx.path) {
       const health = {status: 'UP'};
       for (let check of checks) {
-        const checkResult = await check.check();
+        let checkResult;
+        try {
+          checkResult = await check.check();
+        } catch (e) {
+          checkResult = {status: 'DOWN', error: e.message || e.toString()};
+        }
         if (typeof(checkResult) !== 'undefined' && checkResult !== null) {
           health[check.name] = checkResult;
           if (checkResult.status === 'DOWN') {
