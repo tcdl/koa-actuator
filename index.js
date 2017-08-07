@@ -25,7 +25,13 @@ function health(checks) {
           up = false;
         }
       }
-      health.status = up ? 'UP' : 'DOWN';
+      if (up) {
+        health.status = 'UP';
+        ctx.status = 200;
+      } else {
+        health.status = 'DOWN';
+        ctx.status = 503;
+      }
       ctx.body = health;
     } else
       await next();
@@ -96,7 +102,7 @@ async function metrics(ctx, next) {
 module.exports = (options) => {
   let checks = [];
   if (options && options.checks.constructor === Array) {
-    checks = options.checks.filter((check) => check.name && typeof(check.check) === 'function');
+    checks = options.checks.filter((check) => check && check.name && typeof(check.check) === 'function');
   }
   return compose([health(checks), env, info, metrics]);
 };

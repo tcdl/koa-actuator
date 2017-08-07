@@ -24,31 +24,45 @@ describe('Koa actuator', () => {
     describe('/health with custom checks', () => {
 
       let oldMiddleware;
+      const dbStatus = {status: 'UP', freeConnections: 10};
+      const redisStatus = {status: 'UP', usedMemory: '52m', uptimeDays: 16};
 
-      beforeEach(() => {
+      before(() => {
         oldMiddleware = app.middleware.pop();
-      });
-
-      afterEach(() => {
-        app.middleware.pop();
-        app.middleware.push(oldMiddleware);
-      });
-
-      it('GET should return 200, status UP and custom check', (done) => {
-        const dbStatus = {status: 'UP', freeConnections: 10};
-        const redisStatus = {status: 'UP', usedMemory: '52m', uptimeDays: 16};
         app.use(actuator({
           checks: [
             {name: 'db', check: () => dbStatus},
             {name: 'redisStatus', check: () => redisStatus}
           ]
         }));
+      });
 
+      after(() => {
+        app.middleware.pop();
+        app.middleware.push(oldMiddleware);
+      });
+
+      it('GET should return 200, custom checks and aggregated status UP', (done) => {
         request
           .get('/health')
           .expect(200)
           .expect({
             status: 'UP',
+            db: dbStatus,
+            redisStatus: redisStatus
+          }, done);
+      });
+
+      it('GET should return 503, custom checks and aggregated status DOWN', (done) => {
+        //arrange
+        redisStatus.status = 'DOWN';
+
+        //act & assert
+        request
+          .get('/health')
+          .expect(503)
+          .expect({
+            status: 'DOWN',
             db: dbStatus,
             redisStatus: redisStatus
           }, done);
