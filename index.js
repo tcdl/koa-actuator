@@ -23,9 +23,11 @@ function health(options) {
       const health = {status: 'UP'};
       for (let check of checks) {
         const checkResult = await check.check();
-        health[check.name] = checkResult;
-        if (checkResult.status === 'DOWN') {
-          health.status = checkResult.status;
+        if (typeof(checkResult) !== 'undefined' && checkResult !== null) {
+          health[check.name] = checkResult;
+          if (checkResult.status === 'DOWN') {
+            health.status = checkResult.status;
+          }
         }
       }
       ctx.status = health.status === 'UP' ? 200 : 503;
