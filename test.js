@@ -20,6 +20,40 @@ describe('Koa actuator', () => {
         .expect(200)
         .expect(/UP/, done);
     });
+
+    describe('/health with custom checks', () => {
+
+      let oldMiddleware;
+
+      beforeEach(() => {
+        oldMiddleware = app.middleware.pop();
+      });
+
+      afterEach(() => {
+        app.middleware.pop();
+        app.middleware.push(oldMiddleware);
+      });
+
+      it('GET should return 200, status UP and custom check', (done) => {
+        const dbStatus = {status: 'UP', freeConnections: 10};
+        const redisStatus = {status: 'UP', usedMemory: '52m', uptimeDays: 16};
+        app.use(actuator({
+          checks: [
+            {name: 'db', check: () => dbStatus},
+            {name: 'redisStatus', check: () => redisStatus}
+          ]
+        }));
+
+        request
+          .get('/health')
+          .expect(200)
+          .expect({
+            status: 'UP',
+            db: dbStatus,
+            redisStatus: redisStatus
+          }, done);
+      });
+    });
   });
 
   describe('/info', () => {

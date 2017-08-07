@@ -13,12 +13,23 @@ const SECURE_PROP_NAMES = ['admin', 'user', 'password', 'pass', 'pwd', 'login', 
 /**
  * Writes {status: 'UP'} to response body if request path is /health
  */
-//TODO: add a callback function
-async function health(ctx, next) {
-  if (HEALTH_PATH == ctx.path)
-    ctx.body = {status: 'UP'};
-  else
-    await next();
+function health(checks) {
+  return async function (ctx, next) {
+    if (HEALTH_PATH === ctx.path) {
+      const health = {};
+      let up = true;
+      for (let check of checks) {
+        const checkResult = await check.check();
+        health[check.name] = checkResult;
+        if (checkResult.status === 'DOWN') {
+          up = false;
+        }
+      }
+      health.status = up ? 'UP' : 'DOWN';
+      ctx.body = health;
+    } else
+      await next();
+  }
 }
 
 /**
@@ -83,5 +94,9 @@ async function metrics(ctx, next) {
 
 
 module.exports = (options) => {
-  return compose([health, env, info, metrics]);
+  let checks = [];
+  if (options && options.checks.constructor === Array) {
+    checks = options.checks.filter((check) => check.name && typeof(check.check) === 'function');
+  }
+  return compose([health(checks), env, info, metrics]);
 };
