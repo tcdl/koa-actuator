@@ -131,32 +131,6 @@ describe('koa-actuator', () => {
           db: {status: 'DOWN', error: 'Check timed out'},
         }, done);
     });
-
-    it('should return 200 and status UP if defined checks are not valid', (done) => {
-      //arrange
-      const app = new Koa();
-      app.use(actuator({
-        health: {
-          checks: [
-            undefined,
-            'not a check',
-            {not_a_check: null},
-            {name: 'db', check: 'not a function'},
-            {name: 'db2', check: () => void 0},
-            {name: 'redis', check: () => ({working: 'no'})}
-          ]
-        }
-      }));
-
-      //act & assert
-      request(app.callback())
-        .get('/health')
-        .expect(200)
-        .expect({
-          status: 'UP',
-          redis: {working: 'no'}
-        }, done);
-    });
   });
 
   describe('/info', () => {

@@ -3,6 +3,7 @@ const os = require('os');
 const path = require('path');
 const appRootPath = require('app-root-path');
 const package_json = require(appRootPath + path.sep + 'package.json');
+const assert = require('assert');
 
 const HEALTH_PATH = '/health';
 const ENV_PATH = '/env';
@@ -11,33 +12,33 @@ const METRICS_PATH = '/metrics';
 const SECURE_PROP_NAMES = ['admin', 'user', 'password', 'pass', 'pwd', 'login', 'username'];
 
 /**
- * Writes {status: 'UP'} to response body if request path is /health
+ * Writes health checks details and application status to response body if request path is /health
  */
 function health(options = {}) {
+  const checks = options.checks || [];
   const timeout = options.timeout || 5000;
-  const checks = [];
-  if (options.checks && options.checks.constructor === Array) {
-    options.checks
-      .filter(check => check && check.name && typeof(check.check) === 'function')
-      .forEach(check => checks.push(check));
-  }
 
-  return async function (ctx, next) {
+  assert(checks.constructor === Array, "'checks' must be an array");
+  checks.forEach((check) => {
+    assert(typeof(check) === 'object', "'checks' elements must be objects");
+    assert(typeof(check.check) === 'function', "'checks' elements must contain 'check' function");
+  });
+
+  return async function healthMiddleware(ctx, next) {
     if (HEALTH_PATH === ctx.path) {
       const health = {status: 'UP'};
       for (let check of checks) {
         const checkResult = await runCheck(check, timeout);
-        if (typeof(checkResult) !== 'undefined' && checkResult !== null) {
-          health[check.name] = checkResult;
-          if (checkResult.status === 'DOWN') {
-            health.status = checkResult.status;
-          }
+        health[check.name] = checkResult;
+        if (checkResult && checkResult.status === 'DOWN') {
+          health.status = checkResult.status;
         }
       }
       ctx.status = health.status === 'UP' ? 200 : 503;
       ctx.body = health;
-    } else
+    } else {
       await next();
+    }
   }
 }
 
