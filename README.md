@@ -13,9 +13,9 @@ $ npm install koa-actuator --save
 const Koa = require('koa');
 const actuator = require('koa-actuator');
 const app = new Koa();
-...
-app.use(actuator);
-...
+//...
+app.use(actuator());
+//...
 app.listen(3000);
 ```
 
@@ -25,9 +25,43 @@ Ones you start your koa application, it will add several service endpoints such 
 The list of service endpoints and examples of responses is below:
 
 ### /health
+Performs health checks and returns the results:
 ```
-{"status":"UP"}
+{
+  "status": "UP",
+  "db": {
+    "status": "UP",
+    "freeConnections": 10
+  },
+  "redis": {
+    "status": "UP",
+    "usedMemory": "52m",
+    "uptimeDays": 16
+  }
+}
 ```
+The statuses of the health checks are aggregated in the root-level `status` field. If at least one check yields `DOWN` status,
+the aggregated status will become `DOWN`. Health checks can be defined in actuator options:
+ ```js
+app.use(actuator({
+  health: {
+    checks: [
+      {
+        name: 'db',
+        check: async () => {
+          return {
+            status: (await isDbAlive()) ? 'UP' : 'DOWN',
+            freeConnections: await freeDbConnectionsNo()
+          }
+        }
+      },
+      //...
+    ]
+  }
+}));
+```
+The `check` function can return an object of an arbitrary structure. If the returned structure contains `status` field,
+it will be counted in the aggregated status.
 
 ### /env
 Exposes environment properties and command line arguments. Variables that likely to be secure (contain 'user', 'password', 'pass' etc in their names) will be replaced by *******

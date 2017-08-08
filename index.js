@@ -12,7 +12,7 @@ const METRICS_PATH = '/metrics';
 const SECURE_PROP_NAMES = ['admin', 'user', 'password', 'pass', 'pwd', 'login', 'username'];
 
 /**
- * Writes health checks details and application status to response body if request path is /health
+ * Writes health checks results and aggregated status to response body if request path is /health
  */
 function health(options = {}) {
   const checks = options.checks || [];
