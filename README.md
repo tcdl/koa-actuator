@@ -40,28 +40,20 @@ Performs health checks and returns the results:
   }
 }
 ```
-The statuses of the health checks are aggregated in the root-level `status` field. If at least one check yields `DOWN` status,
-the aggregated status will become `DOWN`. Health checks can be defined in actuator options:
+The statuses of the health checks are aggregated in a root-level `status` field. If at least one check yields `DOWN` status, the aggregated status will become `DOWN`. Health checks can be defined on actuator construction:
  ```js
-app.use(actuator({
-  health: {
-    checks: [
-      {
-        name: 'db',
-        check: async () => {
-          return {
-            status: (await isDbAlive()) ? 'UP' : 'DOWN',
-            freeConnections: await freeDbConnectionsNo()
-          }
-        }
-      },
-      //...
-    ]
-  }
-}));
+const healthChecks = {
+  db: async () => {
+    return {
+      status: (await isDbAlive()) ? 'UP' : 'DOWN',
+      freeConnections: await freeDbConnectionsLeft()
+    }
+  },
+  //...
+};
+app.use(actuator(healthChecks));
 ```
-The `check` function can return an object of an arbitrary structure. If the returned structure contains `status` field,
-it will be counted in the aggregated status.
+A check can return an object of an arbitrary structure. If the returned structure contains `status` field, it will be counted in the aggregated status.
 
 ### /env
 Exposes environment properties and command line arguments. Variables that likely to be secure (contain 'user', 'password', 'pass' etc in their names) will be replaced by *******

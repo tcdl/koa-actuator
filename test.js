@@ -22,12 +22,8 @@ describe('koa-actuator', () => {
       //arrange
       const app = new Koa();
       app.use(actuator({
-        health: {
-          checks: [
-            {name: 'db', check: () => Promise.resolve({status: 'UP', freeConnections: 10})},
-            {name: 'redis', check: () => ({status: 'UP', usedMemory: '52m', uptimeDays: 16})}
-          ]
-        }
+        db: () => Promise.resolve({status: 'UP', freeConnections: 10}),
+        redis: () => ({status: 'UP', usedMemory: '52m', uptimeDays: 16})
       }));
 
       //act & assert
@@ -45,12 +41,8 @@ describe('koa-actuator', () => {
       //arrange
       const app = new Koa();
       app.use(actuator({
-        health: {
-          checks: [
-            {name: 'db', check: () => Promise.resolve({status: 'UP', freeConnections: 10})},
-            {name: 'redis', check: () => Promise.resolve({status: 'DOWN', usedMemory: '52m', uptimeDays: 16})}
-          ]
-        }
+        db: () => Promise.resolve({status: 'UP', freeConnections: 10}),
+        redis: () => Promise.resolve({status: 'DOWN', usedMemory: '52m', uptimeDays: 16})
       }));
 
       //act & assert
@@ -68,12 +60,8 @@ describe('koa-actuator', () => {
       //arrange
       const app = new Koa();
       app.use(actuator({
-        health: {
-          checks: [
-            {name: 'db', check: () => { throw new Error('unexpected error'); }},
-            {name: 'redis', check: () => Promise.resolve({status: 'UP', usedMemory: '52m', uptimeDays: 16})}
-          ]
-        }
+        db: () => { throw new Error('unexpected error'); },
+        redis: () => Promise.resolve({status: 'UP', usedMemory: '52m', uptimeDays: 16})
       }));
 
       //act & assert
@@ -91,12 +79,8 @@ describe('koa-actuator', () => {
       //arrange
       const app = new Koa();
       app.use(actuator({
-        health: {
-          checks: [
-            {name: 'db', check: () => Promise.resolve({status: 'UP', freeConnections: 10})},
-            {name: 'redis', check: () => Promise.reject('unexpected async error')},
-          ]
-        }
+        db: () => Promise.resolve({status: 'UP', freeConnections: 10}),
+        redis: () => Promise.reject('unexpected async error')
       }));
 
       //act & assert
@@ -113,14 +97,10 @@ describe('koa-actuator', () => {
     it('should return 503 and status DOWN if an async check times out', (done) => {
       //arrange
       const app = new Koa();
+      const options = {checkTimeout: 100};
       app.use(actuator({
-        health: {
-          checks: [
-            {name: 'db', check: () => new Promise((resolve, reject) => setTimeout(() => resolve({status: 'UP', freeConnections: 10}), 3000))}
-          ],
-          timeout: 100
-        }
-      }));
+        db: () => new Promise((resolve, reject) => setTimeout(() => resolve({status: 'UP', freeConnections: 10}), 3000))
+      }, options));
 
       //act & assert
       request(app.callback())

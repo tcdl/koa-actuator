@@ -14,22 +14,17 @@ const SECURE_PROP_NAMES = ['admin', 'user', 'password', 'pass', 'pwd', 'login', 
 /**
  * Writes health checks results and aggregated status to response body if request path is /health
  */
-function health(options = {}) {
-  const checks = options.checks || [];
-  const timeout = options.timeout || 5000;
+function health(checks, options) {
+  Object.keys(checks).forEach(name => assert(typeof(checks[name]) === 'function', `'${name}' check must be a function`));
 
-  assert(checks.constructor === Array, "'checks' must be an array");
-  checks.forEach((check) => {
-    assert(typeof(check) === 'object', "'checks' elements must be objects");
-    assert(typeof(check.check) === 'function', "'checks' elements must contain 'check' function");
-  });
+  const timeout = options.checkTimeout || 5000;
 
   return async function healthMiddleware(ctx, next) {
     if (HEALTH_PATH === ctx.path) {
       const health = {status: 'UP'};
-      for (let check of checks) {
-        const checkResult = await runCheck(check, timeout);
-        health[check.name] = checkResult;
+      for (const checkName of Object.keys(checks)) {
+        const checkResult = await runCheck(checks[checkName], timeout);
+        health[checkName] = checkResult;
         if (checkResult && checkResult.status === 'DOWN') {
           health.status = checkResult.status;
         }
@@ -45,7 +40,7 @@ function health(options = {}) {
 async function runCheck(check, timeout) {
   try {
     return await Promise.race([
-      check.check(),
+      check(),
       new Promise((resolve, reject) => setTimeout(() => reject(new Error('Check timed out')), timeout))
     ]);
   } catch (e) {
@@ -114,6 +109,6 @@ async function metrics(ctx, next) {
 }
 
 
-module.exports = (options = {}) => {
-  return compose([health(options.health), env, info, metrics]);
+module.exports = (healthChecks = {}, options = {}) => {
+  return compose([health(healthChecks, options), env, info, metrics]);
 };
