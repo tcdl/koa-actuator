@@ -2,7 +2,8 @@ const compose = require('koa-compose');
 const os = require('os');
 const path = require('path');
 const appRootPath = require('app-root-path');
-const package_json = require(appRootPath + path.sep +'package.json');
+const package_json = require(appRootPath + path.sep + 'package.json');
+const assert = require('assert');
 
 const HEALTH_PATH = '/health';
 const ENV_PATH = '/env';
@@ -11,14 +12,40 @@ const METRICS_PATH = '/metrics';
 const SECURE_PROP_NAMES = ['admin', 'user', 'password', 'pass', 'pwd', 'login', 'username'];
 
 /**
- * Writes {status: 'UP'} to response body if request path is /health
+ * Writes health checks results and aggregated status to response body if request path is /health
  */
-//TODO: add a callback function
-async function health(ctx, next) {
-  if (HEALTH_PATH == ctx.path)
-    ctx.body = {status: 'UP'};
-  else
-    await next();
+function health(checks, options) {
+  Object.keys(checks).forEach(name => assert(typeof(checks[name]) === 'function', `'${name}' check must be a function`));
+
+  const timeout = options.checkTimeout || 5000;
+
+  return async function healthMiddleware(ctx, next) {
+    if (HEALTH_PATH === ctx.path) {
+      const health = {status: 'UP'};
+      for (const checkName of Object.keys(checks)) {
+        const checkResult = await runCheck(checks[checkName], timeout);
+        health[checkName] = checkResult;
+        if (checkResult && checkResult.status === 'DOWN') {
+          health.status = checkResult.status;
+        }
+      }
+      ctx.status = health.status === 'UP' ? 200 : 503;
+      ctx.body = health;
+    } else {
+      await next();
+    }
+  }
+}
+
+async function runCheck(check, timeout) {
+  try {
+    return await Promise.race([
+      check(),
+      new Promise((resolve, reject) => setTimeout(() => reject(new Error('Check timed out')), timeout))
+    ]);
+  } catch (e) {
+    return {status: 'DOWN', error: e && (e.message || e.toString())};
+  }
 }
 
 /**
@@ -68,7 +95,7 @@ async function metrics(ctx, next) {
       uptime: process.uptime(),
       processors: os.cpus().length,
       heap: memory.heapTotal,
-      "heap.used": memory.heapUsed,
+      'heap.used': memory.heapUsed,
       resources: {
         memory: memory,
         loadavg: os.loadavg(),
@@ -82,4 +109,6 @@ async function metrics(ctx, next) {
 }
 
 
-module.exports = compose([health, env, info, metrics]);
+module.exports = (healthChecks = {}, options = {}) => {
+  return compose([health(healthChecks, options), env, info, metrics]);
+};
