@@ -1,4 +1,4 @@
-const actuator = require('.');
+const actuator = require('../index');
 const Koa = require('koa');
 const request = require('supertest');
 const assert = require('chai').assert;
