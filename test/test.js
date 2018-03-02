@@ -1,4 +1,4 @@
-const actuator = require('../index');
+const actuator = require('../lib/index');
 const Koa = require('koa');
 const request = require('supertest');
 const utils = require('../lib/utils');
@@ -145,9 +145,8 @@ describe('koa-actuator', () => {
     it('should return 200 and empty object if package.json not found', (done) => {
       //arrange
       sinon.stub(utils, 'loadPackageJson').returns(null);
-      delete require.cache[require.resolve('../index')];
-      delete require.cache[require.resolve('../lib/endpoints')];
-      const actuator = require(require.resolve('../index'));
+      delete require.cache[require.resolve('../lib/index')];
+      const actuator = require('../lib/index');
 
       const app = new Koa();
       app.use(actuator());
