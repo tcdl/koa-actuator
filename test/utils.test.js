@@ -4,7 +4,7 @@ const mock = require('mock-require');
 const {assert} = require('chai');
 
 describe('utils', () => {
-  describe('requirePackageJson', () => {
+  describe('loadPackageJson', () => {
     after(() => {
       mock.stopAll();
     });
@@ -14,7 +14,7 @@ describe('utils', () => {
       mock(appRootPath + path.sep + 'package.json', mockedPackageJson);
       const utils = mock.reRequire('../lib/utils');
 
-      assert.deepEqual(utils.requirePackageJson(), mockedPackageJson)
+      assert.deepEqual(utils.loadPackageJson(), mockedPackageJson)
     });
 
     it('should require package.json from CWD if app-root-path fails', () => {
@@ -23,7 +23,7 @@ describe('utils', () => {
       mock(process.cwd() + path.sep + 'package.json', mockedPackageJson);
       const utils = mock.reRequire('../lib/utils');
 
-      assert.deepEqual(utils.requirePackageJson(), mockedPackageJson)
+      assert.deepEqual(utils.loadPackageJson(), mockedPackageJson)
     });
 
     it('should require package.json relatively if CWD fails', () => {
@@ -33,7 +33,7 @@ describe('utils', () => {
       mock('../../../package.json', mockedPackageJson);
       const utils = mock.reRequire('../lib/utils');
 
-      assert.deepEqual(utils.requirePackageJson(), mockedPackageJson)
+      assert.deepEqual(utils.loadPackageJson(), mockedPackageJson)
     });
 
     it('should return null if all attempts fail', () => {
@@ -42,7 +42,7 @@ describe('utils', () => {
       mock('../../../package.json', 'not_existing');
       const utils = mock.reRequire('../lib/utils');
 
-      assert.isNull(utils.requirePackageJson())
+      assert.isNull(utils.loadPackageJson())
     });
   })
 });
