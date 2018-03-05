@@ -1,7 +1,9 @@
-const actuator = require('.');
+const actuator = require('../lib/index');
 const Koa = require('koa');
 const request = require('supertest');
+const utils = require('../lib/utils');
 const assert = require('chai').assert;
+const sinon = require('sinon');
 
 describe('koa-actuator', () => {
 
@@ -114,6 +116,16 @@ describe('koa-actuator', () => {
   });
 
   describe('/info', () => {
+    let sandbox;
+
+    before(() => {
+      sandbox = sinon.sandbox.create();
+    });
+
+    after(() => {
+      sandbox.restore();
+    });
+
     it('should return 200 and version', (done) => {
       //arrange
       const app = new Koa();
@@ -126,6 +138,26 @@ describe('koa-actuator', () => {
         .end((err, res) => {
           if (err) return done(err);
           assert.isDefined(res.body.build.version);
+          done();
+        });
+    });
+
+    it('should return 200 and empty object if package.json not found', (done) => {
+      //arrange
+      sinon.stub(utils, 'loadPackageJson').returns(null);
+      delete require.cache[require.resolve('../lib/index')];
+      const actuator = require('../lib/index');
+
+      const app = new Koa();
+      app.use(actuator());
+
+      //act & assert
+      request(app.callback())
+        .get('/info')
+        .expect(200)
+        .end((err, res) => {
+          if (err) return done(err);
+          assert.deepEqual(res.body, {});
           done();
         });
     });
