@@ -15,7 +15,20 @@ describe('koa-actuator', () => {
 
       //act & assert
       request(app.callback())
-        .get('/health')
+        .get('/actuator/health')
+        .expect(200)
+        .expect({status: 'UP'}, done);
+    });
+
+    it('should use parameter actuatorPath if it is defined', (done) => {
+
+      const options = {actuatorPath: '/custom-actuator-path'};
+
+      const app = new Koa();
+      app.use(actuator({}, options));
+
+      request(app.callback())
+        .get('/custom-actuator-path/health')
         .expect(200)
         .expect({status: 'UP'}, done);
     });
@@ -30,12 +43,14 @@ describe('koa-actuator', () => {
 
       //act & assert
       request(app.callback())
-        .get('/health')
+        .get('/actuator/health')
         .expect(200)
         .expect({
           status: 'UP',
-          db: {status: 'UP', freeConnections: 10},
-          redis: {status: 'UP', usedMemory: '52m', uptimeDays: 16}
+          details: {
+            db: {status: 'UP', details: {freeConnections: 10}},
+            redis: {status: 'UP', details: {usedMemory: '52m', uptimeDays: 16}}
+          }
         }, done);
     });
 
@@ -49,12 +64,14 @@ describe('koa-actuator', () => {
 
       //act & assert
       request(app.callback())
-        .get('/health')
+        .get('/actuator/health')
         .expect(503)
         .expect({
           status: 'DOWN',
-          db: {status: 'UP', freeConnections: 10},
-          redis: {status: 'DOWN', usedMemory: '52m', uptimeDays: 16}
+          details: {
+            db: {status: 'UP', details: {freeConnections: 10}},
+            redis: {status: 'DOWN', details:{usedMemory: '52m', uptimeDays: 16}}
+          }
         }, done);
     });
 
@@ -62,18 +79,22 @@ describe('koa-actuator', () => {
       //arrange
       const app = new Koa();
       app.use(actuator({
-        db: () => { throw new Error('unexpected error'); },
+        db: () => {
+          throw new Error('unexpected error');
+        },
         redis: () => Promise.resolve({status: 'UP', usedMemory: '52m', uptimeDays: 16})
       }));
 
       //act & assert
       request(app.callback())
-        .get('/health')
+        .get('/actuator/health')
         .expect(503)
         .expect({
           status: 'DOWN',
-          db: {status: 'DOWN', error: 'unexpected error'},
-          redis: {status: 'UP', usedMemory: '52m', uptimeDays: 16}
+          details: {
+            db: {status: 'DOWN', details: {error: 'unexpected error'}},
+            redis: {status: 'UP', details: {usedMemory: '52m', uptimeDays: 16}}
+          }
         }, done);
     });
 
@@ -87,12 +108,14 @@ describe('koa-actuator', () => {
 
       //act & assert
       request(app.callback())
-        .get('/health')
+        .get('/actuator/health')
         .expect(503)
         .expect({
           status: 'DOWN',
-          db: {status: 'UP', freeConnections: 10},
-          redis: {status: 'DOWN', error: 'unexpected async error'}
+          details: {
+            db: {status: 'UP', details: {freeConnections: 10}},
+            redis: {status: 'DOWN', details: {error: 'unexpected async error'}}
+          }
         }, done);
     });
 
@@ -106,11 +129,13 @@ describe('koa-actuator', () => {
 
       //act & assert
       request(app.callback())
-        .get('/health')
+        .get('/actuator/health')
         .expect(503)
         .expect({
           status: 'DOWN',
-          db: {status: 'DOWN', error: 'Check timed out'},
+          details: {
+            db: {status: 'DOWN', details: {error: 'Check timed out'}}
+          }
         }, done);
     });
   });
@@ -133,7 +158,7 @@ describe('koa-actuator', () => {
 
       //act & assert
       request(app.callback())
-        .get('/info')
+        .get('/actuator/info')
         .expect(200)
         .end((err, res) => {
           if (err) return done(err);
@@ -141,6 +166,25 @@ describe('koa-actuator', () => {
           done();
         });
     });
+
+    it('should use parameter actuatorPath if it is defined', (done) => {
+      //arrange
+      const options = {actuatorPath: '/custom-actuator-path'};
+
+      const app = new Koa();
+      app.use(actuator({}, options));
+
+      //act & assert
+      request(app.callback())
+        .get('/custom-actuator-path/info')
+        .expect(200)
+        .end((err, res) => {
+          if (err) return done(err);
+          assert.isDefined(res.body.build.version);
+          done();
+        });
+    });
+
 
     it('should return 200 and empty object if package.json not found', (done) => {
       //arrange
@@ -153,7 +197,7 @@ describe('koa-actuator', () => {
 
       //act & assert
       request(app.callback())
-        .get('/info')
+        .get('/actuator/info')
         .expect(200)
         .end((err, res) => {
           if (err) return done(err);
@@ -163,65 +207,4 @@ describe('koa-actuator', () => {
     });
   });
 
-  describe('/env', () => {
-    it('should return 200 and the list of environment variables', (done) => {
-      //arrange
-      process.env.TEST_VAR = 'test';
-      const app = new Koa();
-      app.use(actuator());
-
-      //act & assert
-      request(app.callback())
-        .get('/env')
-        .expect(200)
-        .end((err, res) => {
-          if (err) return done(err);
-          assert.equal(res.body.systemEnvironment.TEST_VAR, 'test');
-          done();
-        });
-    });
-
-    it('should hide secure data', (done) => {
-      //arrange
-      process.env.TEST_VAR = 'test';
-      process.env.USERNAME = 'test-username';
-      process.env.PASSWORD = 'test-password';
-      const app = new Koa();
-      app.use(actuator());
-
-      //act & assert
-      request(app.callback())
-        .get('/env')
-        .expect(200)
-        .end((err, res) => {
-          if (err) return done(err);
-          assert.equal(res.body.systemEnvironment.TEST_VAR, 'test');
-          assert.equal(res.body.systemEnvironment.USERNAME, '*******');
-          assert.equal(res.body.systemEnvironment.PASSWORD, '*******');
-          done();
-        });
-    });
-  });
-
-  describe('/metrics', () => {
-    it('should return 200 and show some service info (like uptime, heap usage etc)', (done) => {
-      //arrange
-      const app = new Koa();
-      app.use(actuator());
-
-      //act & assert
-      request(app.callback())
-        .get('/metrics')
-        .expect(200)
-        .end((err, res) => {
-          if (err) return done(err);
-          assert.property(res.body, 'uptime');
-          assert.property(res.body, 'processors');
-          assert.property(res.body, 'heap');
-          assert.property(res.body, 'heap.used');
-          assert.deepProperty(res.body, 'resources.memory');
-          done();
-        });
-    });
-  });
 });
