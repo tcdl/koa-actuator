@@ -19,7 +19,7 @@ app.use(actuator());
 app.listen(3000);
 ```
 
-Ones you start your koa application, it will add endpoints /health, /env
+Ones you start your koa application, it will add endpoints /health, /info
 
 ## Endpoints
 The list of service endpoints and examples of responses is below:
