@@ -205,6 +205,22 @@ describe('koa-actuator', () => {
           done();
         });
     });
+
+    it.only('should expose git-related info if git.properties file is present', (done) => {
+      //arrange
+      const app = new Koa();
+      app.use(actuator());
+
+      //act & assert
+      request(app.callback())
+        .get('/actuator/info')
+        .expect(200)
+        .end((err, res) => {
+          if (err) return done(err);
+          assert.equal(res.body.git.commit.id, 'a94ff08');
+          done();
+        });
+    });
   });
 
 });
