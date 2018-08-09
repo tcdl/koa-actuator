@@ -1,9 +1,11 @@
-const actuator = require('../lib/index');
 const Koa = require('koa');
 const request = require('supertest');
 const utils = require('../lib/utils');
 const assert = require('chai').assert;
 const sinon = require('sinon');
+const fs = require('fs');
+const {copyFileSync} = require('./utils');
+const actuator = require('../lib/index');
 
 describe('koa-actuator', () => {
 
@@ -151,75 +153,94 @@ describe('koa-actuator', () => {
       sandbox.restore();
     });
 
-    it('should return 200 and version', (done) => {
-      //arrange
-      const app = new Koa();
-      app.use(actuator());
+    describe('build info', () => {
+      it('should return 200 and version', (done) => {
+        //arrange
+        const app = new Koa();
+        app.use(actuator());
 
-      //act & assert
-      request(app.callback())
-        .get('/actuator/info')
-        .expect(200)
-        .end((err, res) => {
-          if (err) return done(err);
-          assert.isDefined(res.body.build.version);
-          done();
-        });
+        //act & assert
+        request(app.callback())
+          .get('/actuator/info')
+          .expect(200)
+          .end((err, res) => {
+            if (err) return done(err);
+            assert.isDefined(res.body.build.version);
+            done();
+          });
+      });
+
+      it('should use parameter actuatorPath if it is defined', (done) => {
+        //arrange
+        const options = {actuatorPath: '/custom-actuator-path'};
+
+        const app = new Koa();
+        app.use(actuator({}, options));
+
+        //act & assert
+        request(app.callback())
+          .get('/custom-actuator-path/info')
+          .expect(200)
+          .end((err, res) => {
+            if (err) return done(err);
+            assert.isDefined(res.body.build.version);
+            done();
+          });
+      });
+
+
+      it('should return 200 and empty object if package.json not found', (done) => {
+        //arrange
+        sinon.stub(utils, 'loadPackageJson').returns(null);
+        delete require.cache[require.resolve('../lib/index')];
+        const actuator = require('../lib/index');
+
+        const app = new Koa();
+        app.use(actuator());
+
+        //act & assert
+        request(app.callback())
+          .get('/actuator/info')
+          .expect(200)
+          .end((err, res) => {
+            if (err) return done(err);
+            assert.deepEqual(res.body, {});
+            done();
+          });
+      });
     });
 
-    it('should use parameter actuatorPath if it is defined', (done) => {
-      //arrange
-      const options = {actuatorPath: '/custom-actuator-path'};
+    describe.skip('git info', () => {
+      let actuator;
 
-      const app = new Koa();
-      app.use(actuator({}, options));
+      //copy git.properties file to app root dir
+      before((done)=>{
+        copyFileSync('./test/git.properties.example', './git.properties');
+        actuator = require('../lib/index');
+        done();
+      });
 
-      //act & assert
-      request(app.callback())
-        .get('/custom-actuator-path/info')
-        .expect(200)
-        .end((err, res) => {
-          if (err) return done(err);
-          assert.isDefined(res.body.build.version);
-          done();
-        });
-    });
+      after((done) => {
+        fs.unlink('./git.properties', done);
+      });
 
+      it('should expose git-related info if git.properties file is present', (done) => {
+        //arrange
+        const app = new Koa();
+        app.use(actuator());
 
-    it('should return 200 and empty object if package.json not found', (done) => {
-      //arrange
-      sinon.stub(utils, 'loadPackageJson').returns(null);
-      delete require.cache[require.resolve('../lib/index')];
-      const actuator = require('../lib/index');
-
-      const app = new Koa();
-      app.use(actuator());
-
-      //act & assert
-      request(app.callback())
-        .get('/actuator/info')
-        .expect(200)
-        .end((err, res) => {
-          if (err) return done(err);
-          assert.deepEqual(res.body, {});
-          done();
-        });
-    });
-
-    it.only('should expose git-related info if git.properties file is present', (done) => {
-      //arrange
-      const app = new Koa();
-      app.use(actuator());
-
-      //act & assert
-      request(app.callback())
-        .get('/actuator/info')
-        .expect(200)
-        .end((err, res) => {
-          if (err) return done(err);
-          assert.equal(res.body.git.commit.id, 'a94ff08');
-          done();
-        });
+        //act & assert
+        request(app.callback())
+          .get('/actuator/info')
+          .expect(200)
+          .end((err, res) => {
+            if (err) return done(err);
+            assert.equal(res.body.git.commit.id, 'a94ff08');
+            assert.equal(res.body.git.branch, 'master');
+            assert.equal(res.body.git.commit.time.epochSecond, 1531473434);
+            done();
+          });
+      });
     });
   });
 

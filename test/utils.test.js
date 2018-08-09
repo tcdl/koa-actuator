@@ -26,7 +26,7 @@ describe('utils', () => {
       assert.deepEqual(utils.loadPackageJson(), mockedPackageJson)
     });
 
-    it('should require package.json from relative path if CWD fails', () => {
+    it.only('should require package.json from relative path if CWD fails', () => {
       const mockedPackageJson = {description: 'package.json from relative path'};
       mock(appRootPath + path.sep + 'package.json', 'not_exiting');
       mock(process.cwd() + path.sep + 'package.json', 'not_existing');
