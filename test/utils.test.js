@@ -1,13 +1,18 @@
 const appRootPath = require('app-root-path');
 const path = require('path');
 const mock = require('mock-require');
+const sinon = require('sinon');
+const fs = require('fs');
 const {assert} = require('chai');
 
 describe('utils', () => {
   describe('loadPackageJson', () => {
+    const sandbox = sinon.createSandbox();
     after(() => {
       mock.stopAll();
     });
+
+    afterEach(() => {sandbox.restore();});
 
     it('should require package.json using app-root-path', () => {
       const mockedPackageJson = {description: 'package.json from app-root-path'};
@@ -26,7 +31,8 @@ describe('utils', () => {
       assert.deepEqual(utils.loadPackageJson(), mockedPackageJson)
     });
 
-    it.only('should require package.json from relative path if CWD fails', () => {
+    it('should require package.json from relative path if CWD fails', () => {
+      sandbox.stub(fs, 'existsSync').withArgs('../../../package.json').returns(true);
       const mockedPackageJson = {description: 'package.json from relative path'};
       mock(appRootPath + path.sep + 'package.json', 'not_exiting');
       mock(process.cwd() + path.sep + 'package.json', 'not_existing');

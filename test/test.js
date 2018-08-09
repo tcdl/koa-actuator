@@ -210,12 +210,13 @@ describe('koa-actuator', () => {
       });
     });
 
-    describe.skip('git info', () => {
+    describe('git info', () => {
       let actuator;
 
-      //copy git.properties file to app root dir
+      //copy git.properties file to app root dir and delete the app from require cache in order to re-read properties file
       before((done)=>{
         copyFileSync('./test/git.properties.example', './git.properties');
+        delete require.cache[require.resolve('../lib/index')];
         actuator = require('../lib/index');
         done();
       });
