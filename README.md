@@ -73,3 +73,24 @@ Main application info from package.json
   }
 }
 ```
+If git.properties file is present in application root directory, git section will also be available. In this case the response will look like:
+```json
+{
+  "build": {
+    "version": "1.0.0",
+    "name": "koa-act-test",
+    "main": "index.js",
+    "description": "test"
+  },
+  "git": {
+    "commit": {
+      "time": {
+        "epochSecond": 1531473434,
+        "nano": 0
+      },
+      "id": "a94ff08"
+    },
+    "branch": "origin/master"
+  }
+}
+```
