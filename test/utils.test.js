@@ -32,11 +32,11 @@ describe('utils', () => {
     });
 
     it('should require package.json from relative path if CWD fails', () => {
-      sandbox.stub(fs, 'existsSync').withArgs('../../../package.json').returns(true);
+      sandbox.stub(fs, 'existsSync').withArgs(path.resolve(__dirname + '/../../../package.json')).returns(true);
       const mockedPackageJson = {description: 'package.json from relative path'};
       mock(appRootPath + path.sep + 'package.json', 'not_exiting');
       mock(process.cwd() + path.sep + 'package.json', 'not_existing');
-      mock('../../../package.json', mockedPackageJson);
+      mock(path.resolve(__dirname + '/../../../package.json'), mockedPackageJson);
       const utils = mock.reRequire('../lib/utils');
 
       assert.deepEqual(utils.loadPackageJson(), mockedPackageJson)
