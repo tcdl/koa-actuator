@@ -9,14 +9,23 @@ const actuator = require('../lib/index');
 
 describe('koa-actuator', () => {
 
+  let app;
+  let server;
+
+  beforeEach(() => {
+    app = new Koa();
+    server = app.listen();
+  });
+
+  afterEach(() => server.close());
+
   describe('/health', () => {
     it('should return 200 and status UP if no checks defined', (done) => {
       //arrange
-      const app = new Koa();
       app.use(actuator());
 
       //act & assert
-      request(app.callback())
+      request(server)
         .get('/actuator/health')
         .expect(200)
         .expect({status: 'UP'}, done);
@@ -26,10 +35,9 @@ describe('koa-actuator', () => {
 
       const options = {actuatorPath: '/custom-actuator-path'};
 
-      const app = new Koa();
       app.use(actuator({}, options));
 
-      request(app.callback())
+      request(server)
         .get('/custom-actuator-path/health')
         .expect(200)
         .expect({status: 'UP'}, done);
@@ -37,14 +45,13 @@ describe('koa-actuator', () => {
 
     it('should return 200 and status UP if sync and async checks pass', (done) => {
       //arrange
-      const app = new Koa();
       app.use(actuator({
         db: () => Promise.resolve({status: 'UP', freeConnections: 10}),
         redis: () => ({status: 'UP', usedMemory: '52m', uptimeDays: 16})
       }));
 
       //act & assert
-      request(app.callback())
+      request(server)
         .get('/actuator/health')
         .expect(200)
         .expect({
@@ -58,14 +65,13 @@ describe('koa-actuator', () => {
 
     it('should return 503 and status DOWN if any check fails', (done) => {
       //arrange
-      const app = new Koa();
       app.use(actuator({
         db: () => Promise.resolve({status: 'UP', freeConnections: 10}),
         redis: () => Promise.resolve({status: 'DOWN', usedMemory: '52m', uptimeDays: 16})
       }));
 
       //act & assert
-      request(app.callback())
+      request(server)
         .get('/actuator/health')
         .expect(503)
         .expect({
@@ -79,7 +85,6 @@ describe('koa-actuator', () => {
 
     it('should return 503 and status DOWN if a sync check throws exception', (done) => {
       //arrange
-      const app = new Koa();
       app.use(actuator({
         db: () => {
           throw new Error('unexpected error');
@@ -88,7 +93,7 @@ describe('koa-actuator', () => {
       }));
 
       //act & assert
-      request(app.callback())
+      request(server)
         .get('/actuator/health')
         .expect(503)
         .expect({
@@ -102,14 +107,13 @@ describe('koa-actuator', () => {
 
     it('should return 503 and status DOWN if an async check rejects promise', (done) => {
       //arrange
-      const app = new Koa();
       app.use(actuator({
         db: () => Promise.resolve({status: 'UP', freeConnections: 10}),
         redis: () => Promise.reject('unexpected async error')
       }));
 
       //act & assert
-      request(app.callback())
+      request(server)
         .get('/actuator/health')
         .expect(503)
         .expect({
@@ -123,14 +127,13 @@ describe('koa-actuator', () => {
 
     it('should return 503 and status DOWN if an async check times out', (done) => {
       //arrange
-      const app = new Koa();
       const options = {checkTimeout: 100};
       app.use(actuator({
         db: () => new Promise((resolve, reject) => setTimeout(() => resolve({status: 'UP', freeConnections: 10}), 3000))
       }, options));
 
       //act & assert
-      request(app.callback())
+      request(server)
         .get('/actuator/health')
         .expect(503)
         .expect({
@@ -156,11 +159,10 @@ describe('koa-actuator', () => {
     describe('build info', () => {
       it('should return 200 and version', (done) => {
         //arrange
-        const app = new Koa();
         app.use(actuator());
 
         //act & assert
-        request(app.callback())
+        request(server)
           .get('/actuator/info')
           .expect(200)
           .end((err, res) => {
@@ -174,11 +176,10 @@ describe('koa-actuator', () => {
         //arrange
         const options = {actuatorPath: '/custom-actuator-path'};
 
-        const app = new Koa();
         app.use(actuator({}, options));
 
         //act & assert
-        request(app.callback())
+        request(server)
           .get('/custom-actuator-path/info')
           .expect(200)
           .end((err, res) => {
@@ -195,11 +196,10 @@ describe('koa-actuator', () => {
         delete require.cache[require.resolve('../lib/index')];
         const actuator = require('../lib/index');
 
-        const app = new Koa();
         app.use(actuator());
 
         //act & assert
-        request(app.callback())
+        request(server)
           .get('/actuator/info')
           .expect(200)
           .end((err, res) => {
@@ -227,11 +227,10 @@ describe('koa-actuator', () => {
 
       it('should expose git-related info if git.properties file is present', (done) => {
         //arrange
-        const app = new Koa();
         app.use(actuator());
 
         //act & assert
-        request(app.callback())
+        request(server)
           .get('/actuator/info')
           .expect(200)
           .end((err, res) => {
